@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GST इन्वॉइस जनरेटर - फ्री में PDF डाउनलोड करें</title>
+  <meta name="description" content="भारत में छोटे व्यवसायों के लिए फ्री GST इन्वॉइस जनरेटर। CGST, SGST के साथ पेशेवर बिल बनाएं और PDF में डाउनलोड करें।">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f9f9f9;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+      color: #34495e;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    .item-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .item-row input {
+      margin-bottom: 0;
+    }
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    #invoiceOutput {
+      margin-top: 30px;
+      padding: 20px;
+      border: 1px dashed #ccc;
+      display: none;
+    }
+    .invoice-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .invoice-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    .invoice-table th, .invoice-table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    .invoice-table th {
+      background: #f2f2f2;
+    }
+    @media print {
+      button, input, label { display: none !important; }
+      #invoiceOutput { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✅ फ्री GST इन्वॉइस जनरेटर</h1>
+    <p style="text-align:center; color:#e74c3c;">(PDF में डाउनलोड करें या WhatsApp पर भेजें)</p>
+
+    <label>अपना बिज़नेस नाम</label>
+    <input type="text" id="businessName" placeholder="उदाहरण: राजू किराना स्टोर" />
+
+    <label>GSTIN (अनिवार्य नहीं)</label>
+    <input type="text" id="gstin" placeholder="27AABCCDDEEFFG" />
+
+    <label>ग्राहक का नाम</label>
+    <input type="text" id="customerName" placeholder="ग्राहक का नाम दर्ज करें" />
+
+    <label>आइटम्स जोड़ें</label>
+    <div id="itemsContainer">
+      <div class="item-row">
+        <input type="text" class="item-name" placeholder="आइटम का नाम" />
+        <input type="number" class="item-price" placeholder="कीमत (₹)" min="1" />
+        <input type="number" class="item-qty" placeholder="मात्रा" min="1" value="1" />
+      </div>
+    </div>
+    <button type="button" onclick="addItem()">+ आइटम जोड़ें</button>
+
+    <button onclick="generateInvoice()">इन्वॉइस जनरेट करें</button>
+    <button onclick="downloadPDF()">PDF डाउनलोड करें</button>
+    <button onclick="shareOnWhatsApp()">WhatsApp पर भेजें</button>
+
+    <div id="invoiceOutput">
+      <!-- इन्वॉइस यहाँ दिखेगा -->
+    </div>
+  </div>
+
+  <!-- jsPDF लाइब्रेरी (PDF बनाने के लिए) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    // आइटम जोड़ने का फंक्शन
+    function addItem() {
+      const container = document.getElementById('itemsContainer');
+      const div = document.createElement('div');
+      div.className = 'item-row';
+      div.innerHTML = `
+        <input type="text" class="item-name" placeholder="आइटम का नाम" />
+        <input type="number" class="item-price" placeholder="कीमत (₹)" min="1" />
+        <input type="number" class="item-qty" placeholder="मात्रा" min="1" value="1" />
+      `;
+      container.appendChild(div);
+    }
+
+    // इन्वॉइस जनरेट करें
+    function generateInvoice() {
+      const business = document.getElementById('businessName').value || "आपका बिज़नेस";
+      const gstin = document.getElementById('gstin').value || "";
+      const customer = document.getElementById('customerName').value || "ग्राहक";
+      const items = [];
+      let total = 0;
+
+      document.querySelectorAll('.item-row').forEach(row => {
+        const name = row.querySelector('.item-name').value;
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
+        const qty = parseInt(row.querySelector('.item-qty').value) || 1;
+        if (name && price) {
+          const lineTotal = price * qty;
+          items.push({name, price, qty, lineTotal});
+          total += lineTotal;
+        }
+      });
+
+      if (items.length === 0) {
+        alert("कृपया कम से कम एक आइटम जोड़ें!");
+        return;
+      }
+
+      const cgst = total * 0.09; // 9% CGST
+      const sgst = total * 0.09; // 9% SGST
+      const grandTotal = total + cgst + sgst;
+
+      let itemsHTML = "";
+      items.forEach(item => {
+        itemsHTML += `
+          <tr>
+            <td>${item.name}</td>
+            <td>₹${item.price.toFixed(2)}</td>
+            <td>${item.qty}</td>
+            <td>₹${item.lineTotal.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      const invoiceHTML = `
+        <div class="invoice-header">
+          <h2>${business}</h2>
+          ${gstin ? `<p><strong>GSTIN:</strong> ${gstin}</p>` : ''}
+          <p><strong>ग्राहक:</strong> ${customer}</p>
+          <p><strong>दिनांक:</strong> ${new Date().toLocaleDateString('hi-IN')}</p>
+        </div>
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th>आइटम</th>
+              <th>कीमत</th>
+              <th>मात्रा</th>
+              <th>कुल</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHTML}
+          </tbody>
+        </table>
+        <div style="text-align:right; margin-top:10px;">
+          <p><strong>कुल राशि:</strong> ₹${total.toFixed(2)}</p>
+          <p><strong>CGST (9%):</strong> ₹${cgst.toFixed(2)}</p>
+          <p><strong>SGST (9%):</strong> ₹${sgst.toFixed(2)}</p>
+          <hr>
+          <h3>कुल योग: ₹${grandTotal.toFixed(2)}</h3>
+        </div>
+      `;
+
+      document.getElementById('invoiceOutput').innerHTML = invoiceHTML;
+      document.getElementById('invoiceOutput').style.display = 'block';
+    }
+
+    // PDF डाउनलोड करें
+    function downloadPDF() {
+      const output = document.getElementById('invoiceOutput');
+      if (output.style.display === 'none') {
+        alert("पहले इन्वॉइस जनरेट करें!");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text("GST इन्वॉइस", 105, 15, null, null, "center");
+
+      const text = output.innerText;
+      const lines = doc.splitTextToSize(text, 180);
+      doc.setFontSize(10);
+      doc.text(lines, 10, 25);
+
+      doc.save(`Invoice_${new Date().getTime()}.pdf`);
+    }
+
+    // WhatsApp पर शेयर करें
+    function shareOnWhatsApp() {
+      const output = document.getElementById('invoiceOutput');
+      if (output.style.display === 'none') {
+        alert("पहले इन्वॉइस जनरेट करें!");
+        return;
+      }
+
+      const text = encodeURIComponent(output.innerText);
+      const url = `https://wa.me/?text=${text}`;
+      window.open(url, '_blank');
+    }
+  </script>
+</body>
+</html>
